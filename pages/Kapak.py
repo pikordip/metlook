@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # Veriyi yükle
-df = pd.read_excel("data/metbeds/IMPERIAL.xlsx")
+df = pd.read_excel("data/metbeds/IMPERIAL.xlsx", sheet_name="DAİLY 2025", header=0)
 
 # Kolon isimlerini normalize et
 df.columns = df.columns.str.strip().str.upper()
