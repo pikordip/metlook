@@ -2,55 +2,50 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# 📁 Excel'den sayfayı ve başlıkları doğru al
-try:
-    df = pd.read_excel("data/metbeds/IMPERIAL.xlsx", sheet_name="DAİLY 2025", header=0)
-except Exception as e:
-    st.error(f"Veri dosyası yüklenemedi: {e}")
-    st.stop()
-
-# 🔡 Kolon adlarını normalize et
+# 📁 Dosya yükleme
+df = pd.read_excel("data/metbeds/IMPERIAL.xlsx", sheet_name="DAİLY 2025", header=0)
 df.columns = df.columns.str.strip().str.upper()
-
-# 🔎 Gerekli kolonlar
-columns_needed = ["TARİH", "ARAÇ", "SÜRÜCÜ", "SAAT", "ACENTA", "GÖREV", "OTEL",
-                  "TERMINAL", "UÇUS KODU", "GRUP NO", "MİSAFİR İSMİ", "PAX"]
-missing = [col for col in columns_needed if col not in df.columns]
-if missing:
-    st.error(f"Eksik kolonlar: {missing}")
-    st.stop()
-
-# 📆 Bugünün tarihini al (format Excel'e göre düzenlenebilir)
-today = datetime.today().strftime("%d.%m.%Y")  # Örn: "17.07.2025"
 df["TARİH"] = df["TARİH"].astype(str)
 
-# 🧼 Filtre verilerini alırken veri tipini kontrol et
-def get_safe_unique(col):
-    try:
-        return sorted(df[col].dropna().astype(str).str.strip().unique())
-    except Exception:
-        return []
+# 📆 Bugünün tarihi
+today = datetime.today().strftime("%d.%m.%Y")
 
-gorev_options = get_safe_unique("GÖREV")
-surucu_options = get_safe_unique("SÜRÜCÜ")
-tarih_options = get_safe_unique("TARİH")
+# 🔍 Filtre verilerini güvenli şekilde hazırla
+def get_filtered_options(df, col, prev_filters={}):
+    temp_df = df.copy()
+    for key, selected in prev_filters.items():
+        if selected:
+            temp_df = temp_df[temp_df[key].astype(str).isin(selected)]
+    return sorted(temp_df[col].dropna().astype(str).str.strip().unique())
 
-# 🎛️ Sidebar filtre arayüzü
+# 🎛️ Sidebar filtreler (entegre sıralı yapı)
 st.sidebar.header("🔎 Filtreler")
+
+# 1. Tarih filtresi
+tarih_options = get_filtered_options(df, "TARİH")
+default_tarih = [today] if today in tarih_options else []
+selected_tarih = st.sidebar.multiselect("Tarih", tarih_options, default=default_tarih)
+
+# 2. Görev filtresi (sadece seçilen tarihlere göre)
+gorev_options = get_filtered_options(df, "GÖREV", {"TARİH": selected_tarih})
 selected_gorev = st.sidebar.multiselect("Görev", gorev_options)
+
+# 3. Sürücü filtresi (seçilen tarih ve görevlere göre)
+surucu_options = get_filtered_options(df, "SÜRÜCÜ", {"TARİH": selected_tarih, "GÖREV": selected_gorev})
 selected_surucu = st.sidebar.multiselect("Sürücü", surucu_options)
-selected_tarih = st.sidebar.multiselect("Tarih", tarih_options, default=[today] if today in tarih_options else [])
 
-# 🔍 Filtre uygulama
+# 🧮 Filtreleri uygula
 filtered_df = df.copy()
-if selected_gorev:
-    filtered_df = filtered_df[filtered_df["GÖREV"].astype(str).isin(selected_gorev)]
-if selected_surucu:
-    filtered_df = filtered_df[filtered_df["SÜRÜCÜ"].astype(str).isin(selected_surucu)]
 if selected_tarih:
-    filtered_df = filtered_df[filtered_df["TARİH"].astype(str).isin(selected_tarih)]
+    filtered_df = filtered_df[filtered_df["TARİH"].isin(selected_tarih)]
+if selected_gorev:
+    filtered_df = filtered_df[filtered_df["GÖREV"].isin(selected_gorev)]
+if selected_surucu:
+    filtered_df = filtered_df[filtered_df["SÜRÜCÜ"].isin(selected_surucu)]
 
-# 📋 Raporu göster
+# 📊 Rapor
 st.title("🚐 Transfer İş Takibi Raporu")
-columns_to_display = [col for col in columns_needed if col in filtered_df.columns]
-st.dataframe(filtered_df[columns_to_display])
+columns = ["TARİH", "ARAÇ", "SÜRÜCÜ", "SAAT", "ACENTA", "GÖREV", "OTEL",
+           "TERMINAL", "UÇUS KODU", "GRUP NO", "MİSAFİR İSMİ", "PAX"]
+existing_cols = [col for col in columns if col in filtered_df.columns]
+st.dataframe(filtered_df[existing_cols])
