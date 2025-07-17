@@ -30,13 +30,14 @@ selected_surucu = st.sidebar.multiselect("Sürücü", surucu_list)
 if selected_surucu:
     filtered_df = filtered_df[filtered_df["SÜRÜCÜ"].isin(selected_surucu)]
 
-# 🎯 Görüntülenecek kolonlar
-display_cols = ["TARİH", "ARAÇ", "SAAT", "SÜRÜCÜ", "GÖREV", "OTEL", "TERMINAL", "PAX", "UÇUS KODU"]
+# 📊 Tablo görüntüsü
+display_cols = ["TARİH", "SAAT", "ARAÇ", "SÜRÜCÜ", "ACENTA", "GÖREV", "OTEL",
+                "TERMINAL", "UÇUS KODU", "GRUP NO", "MİSAFİR İSMİ", "PAX"]
 valid_cols = [col for col in display_cols if col in filtered_df.columns]
 st.title("🚐 Transfer İş Takibi Raporu")
 st.dataframe(filtered_df[valid_cols])
 
-# 💬 WhatsApp mesajı için satır bazlı metin bloğu
+# 💬 WhatsApp mesaj formatı – etiketli satırlar
 def format_whatsapp_blocks(df):
     lines = [
         "🚐 Transfer Raporu",
@@ -45,22 +46,27 @@ def format_whatsapp_blocks(df):
         ""
     ]
     for _, row in df.iterrows():
-        blok = f"""Plaka: {row['ARAÇ']}
+        blok = f"""Tarih: {row['TARİH']}
 Saat: {row['SAAT']}
+Plaka: {row['ARAÇ']}
 Sürücü: {row['SÜRÜCÜ']}
+Acenta: {row.get('ACENTA', '')}
 Görev: {row['GÖREV']}
 Otel: {row['OTEL']}
 Terminal: {row['TERMINAL']}
+Uçuş Kodu: {row.get('UÇUS KODU', '')}
+Grup No: {row.get('GRUP NO', '')}
+Misafir: {row.get('MİSAFİR İSMİ', '')}
 PAX: {row['PAX']}
 ------------------------"""
         lines.append(blok)
     return "\n".join(lines)
 
-# 📲 WhatsApp bağlantısı oluştur
+# 📲 WhatsApp mesajı oluştur
 message_text = format_whatsapp_blocks(filtered_df[valid_cols])
 encoded = urllib.parse.quote(message_text)
 whatsapp_url = f"https://wa.me/?text={encoded}"
 
-# 🔘 Gönder butonu
+# 🔘 Paylaşım butonu
 if st.button("📲 WhatsApp'ta Paylaş"):
     st.markdown(f"[👉 Mesajı WhatsApp'ta Aç]({whatsapp_url})", unsafe_allow_html=True)
