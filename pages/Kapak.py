@@ -1,65 +1,66 @@
 import streamlit as st
 import pandas as pd
 from datetime import date
-import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
-import io
 import urllib.parse
-from PIL import Image
 
-# 📁 Veriyi oku
+# 📁 Excel verisi
 df = pd.read_excel("data/metbeds/IMPERIAL.xlsx", sheet_name="DAİLY 2025", header=0)
 df.columns = df.columns.str.strip().str.upper()
 df["TARİH"] = pd.to_datetime(df["TARİH"], format="%d.%m.%Y", errors="coerce")
 
-# 📅 Tarih filtresi
+# 📅 Sidebar filtreler
 today = date.today()
 st.sidebar.header("🔎 Filtreler")
-selected_date = st.sidebar.date_input("Tarih", value=today)
-filtered_df = df[df["TARİH"].dt.date == selected_date]
+start_date = st.sidebar.date_input("Başlangıç Tarihi", value=today)
+end_date = st.sidebar.date_input("Bitiş Tarihi", value=today)
+
+# 📆 Tarih filtresi
+filtered_df = df[(df["TARİH"].dt.date >= start_date) & (df["TARİH"].dt.date <= end_date)].copy()
+filtered_df["TARİH"] = filtered_df["TARİH"].dt.strftime("%d.%m.%Y")
+
+# 🚗 Plaka filtresi
+arac_list = sorted(filtered_df["ARAÇ"].dropna().astype(str).unique())
+selected_arac = st.sidebar.multiselect("Plaka (ARAÇ)", arac_list)
+if selected_arac:
+    filtered_df = filtered_df[filtered_df["ARAÇ"].isin(selected_arac)]
+
+# 👤 Sürücü filtresi
+surucu_list = sorted(filtered_df["SÜRÜCÜ"].dropna().astype(str).unique())
+selected_surucu = st.sidebar.multiselect("Sürücü", surucu_list)
+if selected_surucu:
+    filtered_df = filtered_df[filtered_df["SÜRÜCÜ"].isin(selected_surucu)]
 
 # 🎯 Görüntülenecek kolonlar
-cols = ["ARAÇ", "SAAT", "SÜRÜCÜ", "GÖREV", "OTEL", "TERMINAL", "PAX"]
-valid_cols = [col for col in cols if col in filtered_df.columns]
-data = filtered_df[valid_cols].copy()
+display_cols = ["TARİH", "ARAÇ", "SAAT", "SÜRÜCÜ", "GÖREV", "OTEL", "TERMINAL", "PAX", "UÇUS KODU"]
+valid_cols = [col for col in display_cols if col in filtered_df.columns]
+st.title("🚐 Transfer İş Takibi Raporu")
+st.dataframe(filtered_df[valid_cols])
 
-# 🧾 Görsel olarak tabloyu oluştur
-def create_table_image(df):
-    fig, ax = plt.subplots(figsize=(12, 0.6 + len(df)*0.5))
-    ax.axis('off')
+# 💬 WhatsApp mesajı için satır bazlı metin bloğu
+def format_whatsapp_blocks(df):
+    lines = [
+        "🚐 Transfer Raporu",
+        f"Tarih Aralığı: {start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}",
+        f"Toplam kayıt: {len(df)}",
+        ""
+    ]
+    for _, row in df.iterrows():
+        blok = f"""Plaka: {row['ARAÇ']}
+Saat: {row['SAAT']}
+Sürücü: {row['SÜRÜCÜ']}
+Görev: {row['GÖREV']}
+Otel: {row['OTEL']}
+Terminal: {row['TERMINAL']}
+PAX: {row['PAX']}
+------------------------"""
+        lines.append(blok)
+    return "\n".join(lines)
 
-    # Tablo stilini uygula
-    table = ax.table(
-        cellText=df.values,
-        colLabels=df.columns,
-        cellLoc='center',
-        loc='center',
-        colLoc='center'
-    )
-    table.scale(1, 1.5)
-    table.auto_set_font_size(False)
-    table.set_fontsize(10)
+# 📲 WhatsApp bağlantısı oluştur
+message_text = format_whatsapp_blocks(filtered_df[valid_cols])
+encoded = urllib.parse.quote(message_text)
+whatsapp_url = f"https://wa.me/?text={encoded}"
 
-    # Görseli belleğe kaydet
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
-    return buf
-
-# 📸 Görseli oluştur ve göster
-if not data.empty:
-    st.subheader(f"📊 {selected_date.strftime('%d.%m.%Y')} Transfer Tablosu (Görsel)")
-    img_buffer = create_table_image(data)
-    st.image(Image.open(img_buffer), caption="Tablo Görseli")
-
-    # 📥 İndirme butonu
-    st.download_button(
-        label="📥 Görseli İndir",
-        data=img_buffer,
-        file_name="transfer_tablosu.png",
-        mime="image/png"
-    )
-
-    st.info("Görseli indirip WhatsApp Web veya mobil uygulamada direkt paylaşabilirsiniz.")
-else:
-    st.warning("Seçilen tarihte kayıt bulunamadı.")
+# 🔘 Gönder butonu
+if st.button("📲 WhatsApp'ta Paylaş"):
+    st.markdown(f"[👉 Mesajı WhatsApp'ta Aç]({whatsapp_url})", unsafe_allow_html=True)
