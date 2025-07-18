@@ -11,11 +11,10 @@ df["TARİH"] = pd.to_datetime(df["TARİH"], format="%d.%m.%Y", errors="coerce")
 # 📅 Sidebar filtreler
 today = date.today()
 st.sidebar.header("🔎 Filtreler")
-start_date = st.sidebar.date_input("Başlangıç Tarihi", value=today)
-end_date = st.sidebar.date_input("Bitiş Tarihi", value=today)
+selected_date = st.sidebar.date_input("Rapor Tarihi", value=today)
 
-# 📆 Tarih filtresi
-filtered_df = df[(df["TARİH"].dt.date >= start_date) & (df["TARİH"].dt.date <= end_date)].copy()
+# 📆 Tarih filtresi (tek gün)
+filtered_df = df[df["TARİH"].dt.date == selected_date].copy()
 filtered_df["TARİH"] = filtered_df["TARİH"].dt.strftime("%d.%m.%Y")
 
 # 🚗 Plaka filtresi
@@ -41,7 +40,7 @@ st.dataframe(filtered_df[valid_cols])
 def format_whatsapp_blocks(df):
     lines = [
         "🚐 Transfer Raporu",
-        f"Tarih Aralığı: {start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}",
+        f"Tarih: {selected_date.strftime('%d.%m.%Y')}",
         f"Toplam kayıt: {len(df)}",
         ""
     ]
