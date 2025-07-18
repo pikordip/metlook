@@ -29,23 +29,44 @@ selected_surucu = st.sidebar.multiselect("Sürücü", surucu_list)
 if selected_surucu:
     filtered_df = filtered_df[filtered_df["SÜRÜCÜ"].isin(selected_surucu)]
 
-# 📊 Tablo görüntüsü
+# 📊 Görüntülenecek kolonlar
 display_cols = ["TARİH", "SAAT", "ARAÇ", "SÜRÜCÜ", "ACENTA", "GÖREV", "OTEL",
                 "TERMINAL", "UÇUS KODU", "GRUP NO", "MİSAFİR İSMİ", "PAX"]
 valid_cols = [col for col in display_cols if col in filtered_df.columns]
-st.title("🚐 Transfer İş Takibi Raporu")
-st.dataframe(filtered_df[valid_cols])
 
-# 💬 WhatsApp mesaj formatı – etiketli satırlar
-def format_whatsapp_blocks(df):
-    lines = [
-        "🚐 Transfer Raporu",
-        f"Tarih: {selected_date.strftime('%d.%m.%Y')}",
-        f"Toplam kayıt: {len(df)}",
-        ""
-    ]
-    for _, row in df.iterrows():
-        blok = f"""Tarih: {row['TARİH']}
+# 🧮 Eğer veri varsa, özet ve tabloyu göster
+if not filtered_df.empty:
+    st.title("🚐 Transfer İş Takibi Raporu")
+
+    # 🔢 Toplam bilgiler
+    toplam_pax = filtered_df["PAX"].sum()
+    toplam_gorev = filtered_df["GÖREV"].nunique()
+    toplam_surucu = filtered_df["SÜRÜCÜ"].nunique()
+    toplam_arac = filtered_df["ARAÇ"].nunique()
+    toplam_kayit = len(filtered_df)
+
+    st.markdown(f"""
+    ### 📊 Toplam Bilgiler ({selected_date.strftime('%d.%m.%Y')})
+    - 🔢 Toplam Kayıt: **{toplam_kayit}**
+    - 👥 Toplam PAX: **{toplam_pax}**
+    - 🚗 Araç Sayısı: **{toplam_arac}**
+    - 👤 Sürücü Sayısı: **{toplam_surucu}**
+    - 🎯 Görev Sayısı: **{toplam_gorev}**
+    """)
+
+    # 📋 Tabloyu göster
+    st.dataframe(filtered_df[valid_cols])
+
+    # 💬 WhatsApp mesaj formatı – etiketli satırlar
+    def format_whatsapp_blocks(df):
+        lines = [
+            "🚐 Transfer Raporu",
+            f"Tarih: {selected_date.strftime('%d.%m.%Y')}",
+            f"Toplam kayıt: {len(df)}",
+            ""
+        ]
+        for _, row in df.iterrows():
+            blok = f"""Tarih: {row['TARİH']}
 Saat: {row['SAAT']}
 Plaka: {row['ARAÇ']}
 Sürücü: {row['SÜRÜCÜ']}
@@ -58,14 +79,19 @@ Grup No: {row.get('GRUP NO', '')}
 Misafir: {row.get('MİSAFİR İSMİ', '')}
 PAX: {row['PAX']}
 ------------------------"""
-        lines.append(blok)
-    return "\n".join(lines)
+            lines.append(blok)
+        return "\n".join(lines)
 
-# 📲 WhatsApp mesajı oluştur
-message_text = format_whatsapp_blocks(filtered_df[valid_cols])
-encoded = urllib.parse.quote(message_text)
-whatsapp_url = f"https://wa.me/?text={encoded}"
+    # 📲 WhatsApp mesajı oluştur
+    message_text = format_whatsapp_blocks(filtered_df[valid_cols])
+    encoded = urllib.parse.quote(message_text)
+    whatsapp_url = f"https://wa.me/?text={encoded}"
 
-# 🔘 Paylaşım butonu
-if st.button("📲 WhatsApp'ta Paylaş"):
-    st.markdown(f"[👉 Mesajı WhatsApp'ta Aç]({whatsapp_url})", unsafe_allow_html=True)
+    # 🔘 Paylaşım butonu
+    if st.button("📲 WhatsApp'ta Paylaş"):
+        st.markdown(f"[👉 Mesajı WhatsApp'ta Aç]({whatsapp_url})", unsafe_allow_html=True)
+
+else:
+    st.title("🚐 Transfer İş Takibi Raporu")
+    st.warning(f"{selected_date.strftime('%d.%m.%Y')} tarihinde kayıt bulunamadı.")
+    st.info("Lütfen farklı bir tarih seçerek tekrar deneyin.")
