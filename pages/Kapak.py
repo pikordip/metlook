@@ -40,19 +40,14 @@ if not filtered_df.empty:
 
     # 🔢 Toplam bilgiler
     toplam_pax = filtered_df["PAX"].sum()
-    toplam_gorev = filtered_df["GÖREV"].nunique()
-    toplam_surucu = filtered_df["SÜRÜCÜ"].nunique()
     toplam_arac = filtered_df["ARAÇ"].nunique()
     toplam_kayit = len(filtered_df)
 
-    st.markdown(f"""
-    ### 📊 Toplam Bilgiler ({selected_date.strftime('%d.%m.%Y')})
-    - 🔢 Toplam Kayıt: **{toplam_kayit}**
-    - 👥 Toplam PAX: **{toplam_pax}**
-    - 🚗 Araç Sayısı: **{toplam_arac}**
-    - 👤 Sürücü Sayısı: **{toplam_surucu}**
-    - 🎯 Görev Sayısı: **{toplam_gorev}**
-    """)
+    # 🔹 Yan yana gösterim
+    col1, col2, col3 = st.columns(3)
+    col1.metric("🔢 Toplam Kayıt", toplam_kayit)
+    col2.metric("👥 Toplam PAX", toplam_pax)
+    col3.metric("🚗 Araç Sayısı", toplam_arac)
 
     # 📋 Tabloyu göster
     st.dataframe(filtered_df[valid_cols])
