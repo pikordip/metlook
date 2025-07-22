@@ -13,10 +13,10 @@ if uploaded_file:
     df.columns = df.columns.str.strip().str.upper()
     df["TARİH"] = pd.to_datetime(df["TARİH"], format="%d.%m.%Y", errors="coerce")
 
-    # 📅 Son tarih otomatik seçimi
-    son_tarih = df["TARİH"].dropna().dt.date.max()
+    # 📅 Bugünün tarihi otomatik olarak seçilir
+    today = date.today()
     st.sidebar.header("🔎 Filtreler")
-    selected_date = st.sidebar.date_input("Rapor Tarihi", value=son_tarih)
+    selected_date = st.sidebar.date_input("Rapor Tarihi", value=today)
 
     # 🗂️ Tarih filtresi
     filtered_df = df[df["TARİH"].dt.date == selected_date].copy()
@@ -38,7 +38,7 @@ if uploaded_file:
     if selected_surucu:
         filtered_df = filtered_df[filtered_df["SÜRÜCÜ"].isin(selected_surucu)]
 
-    # 📋 Görüntülenecek kolonlar (senin sıralamanla)
+    # 📋 Görüntülenecek kolonlar (senin verdiğin sırayla)
     display_cols = [
         "TARİH", "SAAT", "ACENTA", "GÖREV", "OTEL", "TERMINAL",
         "UÇUS KODU", "GRUP NO", "PAX", "ARAÇ", "SÜRÜCÜ", "MİSAFİR İSMİ"
