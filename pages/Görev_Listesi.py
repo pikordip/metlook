@@ -13,12 +13,18 @@ if uploaded_file:
     df.columns = df.columns.str.strip().str.upper()
     df["TARİH"] = pd.to_datetime(df["TARİH"], format="%d.%m.%Y", errors="coerce")
 
-    # 📅 Tarih filtresi
-    today = date.today()
+    # 📅 Son tarih otomatik seçimi
+    son_tarih = df["TARİH"].dropna().dt.date.max()
     st.sidebar.header("🔎 Filtreler")
-    selected_date = st.sidebar.date_input("Rapor Tarihi", value=today)
+    selected_date = st.sidebar.date_input("Rapor Tarihi", value=son_tarih)
+
+    # 🗂️ Tarih filtresi
     filtered_df = df[df["TARİH"].dt.date == selected_date].copy()
     filtered_df["TARİH"] = filtered_df["TARİH"].dt.strftime("%d.%m.%Y")
+
+    # 📊 Tablo sıralama
+    siralama_kolonlari = ["TARİH", "SAAT", "ACENTA", "GÖREV"]
+    filtered_df = filtered_df.sort_values(by=[col for col in siralama_kolonlari if col in filtered_df.columns])
 
     # 🚗 Plaka filtresi
     arac_list = sorted(filtered_df["ARAÇ"].dropna().astype(str).unique())
@@ -32,13 +38,15 @@ if uploaded_file:
     if selected_surucu:
         filtered_df = filtered_df[filtered_df["SÜRÜCÜ"].isin(selected_surucu)]
 
-    # 📊 Görüntülenecek kolonlar
-    display_cols = ["TARİH", "SAAT", "ARAÇ", "SÜRÜCÜ", "ACENTA", "GÖREV", "OTEL",
-                    "TERMINAL", "UÇUS KODU", "GRUP NO", "MİSAFİR İSMİ", "PAX"]
+    # 📋 Görüntülenecek kolonlar (senin sıralamanla)
+    display_cols = [
+        "TARİH", "SAAT", "ACENTA", "GÖREV", "OTEL", "TERMINAL",
+        "UÇUS KODU", "GRUP NO", "PAX", "ARAÇ", "SÜRÜCÜ", "MİSAFİR İSMİ"
+    ]
     valid_cols = [col for col in display_cols if col in filtered_df.columns]
 
     if not filtered_df.empty:
-        # 📊 Özet bilgileri
+        # 📊 Özet kutuları
         toplam_pax = filtered_df["PAX"].sum()
         toplam_arac = filtered_df["ARAÇ"].nunique()
         toplam_kayit = len(filtered_df)
@@ -48,10 +56,10 @@ if uploaded_file:
         col2.metric("👥 Toplam PAX", toplam_pax)
         col3.metric("🚗 Araç Sayısı", toplam_arac)
 
-        # 📋 Tablo
+        # 📋 Tablo gösterimi
         st.dataframe(filtered_df[valid_cols])
 
-        # 💬 WhatsApp mesajı
+        # 💬 WhatsApp mesajı formatlama
         def format_whatsapp_blocks(df):
             lines = [
                 "🚐 Transfer Raporu",
@@ -62,16 +70,16 @@ if uploaded_file:
             for _, row in df.iterrows():
                 blok = f"""Tarih: {row['TARİH']}
 Saat: {row['SAAT']}
-Plaka: {row['ARAÇ']}
-Sürücü: {row['SÜRÜCÜ']}
-Acenta: {row.get('ACENTA', '')}
+Acenta: {row['ACENTA']}
 Görev: {row['GÖREV']}
 Otel: {row['OTEL']}
 Terminal: {row['TERMINAL']}
 Uçuş Kodu: {row.get('UÇUS KODU', '')}
 Grup No: {row.get('GRUP NO', '')}
-Misafir: {row.get('MİSAFİR İSMİ', '')}
 PAX: {row['PAX']}
+Plaka: {row['ARAÇ']}
+Sürücü: {row['SÜRÜCÜ']}
+Misafir: {row.get('MİSAFİR İSMİ', '')}
 ------------------------"""
                 lines.append(blok)
             return "\n".join(lines)
@@ -85,7 +93,7 @@ PAX: {row['PAX']}
 
     else:
         st.warning(f"{selected_date.strftime('%d.%m.%Y')} tarihinde kayıt bulunamadı.")
-        st.info("Lütfen farklı bir tarih seçerek tekrar deneyin.")
+        st.info("Farklı bir tarih seçerek tekrar deneyin.")
 
 else:
     st.info("📥 Raporunuzu yüklemek için lütfen bir Excel dosyası seçin.")
