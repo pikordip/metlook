@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime, date
 
 # 📁 Excel verisini yükle
-df = pd.read_excel("data/metbeds/IMPERIAL.xlsx", sheet_name="DAİLY 2025", header=0)
+df = pd.read_excel("data/IMPERIAL.xlsx", sheet_name="DAİLY 2025", header=0)
 df.columns = df.columns.str.strip().str.upper()
 
 # 📅 Tarih seçimi (takvim arayüzü)
