@@ -82,6 +82,12 @@ Sürücü: {row['SÜRÜCÜ']}
 Misafir: {row.get('MİSAFİR İSMİ', '')}
 ------------------------"""
                 lines.append(blok)
+
+            # 🔚 Teknik imza & kaptan notu
+            lines.append("")
+            lines.append("📲 Bu görev listesi MetLOOK v1.2 sistemi tarafından iletilmiştir.")
+            lines.append("🚌 İyi görevler, güvenli sürüşler dileriz.")
+
             return "\n".join(lines)
 
         message_text = format_whatsapp_blocks(filtered_df[valid_cols])
