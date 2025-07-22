@@ -4,7 +4,7 @@ from datetime import date
 import urllib.parse
 
 # 📁 Excel verisi
-df = pd.read_excel("data/metbeds/IMPERIAL.xlsx", sheet_name="DAİLY 2025", header=0)
+df = pd.read_excel("data/IMPERIAL.xlsx", sheet_name="DAİLY 2025", header=0)
 df.columns = df.columns.str.strip().str.upper()
 df["TARİH"] = pd.to_datetime(df["TARİH"], format="%d.%m.%Y", errors="coerce")
 
